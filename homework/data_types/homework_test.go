@@ -1,23 +1,16 @@
 package main
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"unsafe"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // go test -v homework_test.go
 
 func ToLittleEndian(number uint32) uint32 {
-	pointer := unsafe.Pointer(&number)
-	littleEndianNumber := uint32(0)
-	for i := 0; i < 4; i++ {
-		byteValue := *(*uint8)(unsafe.Add(pointer, i))
-		littleEndianNumber <<= 8
-		littleEndianNumber |= uint32(byteValue)
-	}
-	return littleEndianNumber
+	return (uint32(*(*uint8)(unsafe.Pointer(&number))))<<24 | (uint32(*(*uint8)(unsafe.Add(unsafe.Pointer(&number), 1))))<<16 |
+		(uint32(*(*uint8)(unsafe.Add(unsafe.Pointer(&number), 2))))<<8 | (uint32(*(*uint8)(unsafe.Add(unsafe.Pointer(&number), 3))))
 }
 
 func TestСonversion(t *testing.T) {
