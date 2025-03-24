@@ -1,45 +1,63 @@
 package main
 
 import (
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // go test -v homework_test.go
 
 type CircularQueue struct {
 	values []int
-	// need to implement
+	len    int
+	front  int
 }
 
 func NewCircularQueue(size int) CircularQueue {
-	return CircularQueue{} // need to implement
+	return CircularQueue{
+		values: make([]int, size),
+	}
 }
 
 func (q *CircularQueue) Push(value int) bool {
-	return false // need to implement
+	if q.Full() {
+		return false
+	}
+	q.values[(q.front+q.len)%(cap(q.values))] = value
+	q.len++
+	return true
 }
 
 func (q *CircularQueue) Pop() bool {
-	return false // need to implement
+	if q.Empty() {
+		return false
+	}
+	q.front = (q.front + 1) % cap(q.values)
+	q.len--
+	return true
 }
 
 func (q *CircularQueue) Front() int {
-	return -1 // need to implement
+	if q.Empty() {
+		return -1
+	}
+	return q.values[q.front]
 }
 
 func (q *CircularQueue) Back() int {
-	return -1 // need to implement
+	if q.Empty() {
+		return -1
+	}
+	return q.values[(q.front+q.len-1)%cap(q.values)]
 }
 
 func (q *CircularQueue) Empty() bool {
-	return false // need to implement
+	return q.len == 0
 }
 
 func (q *CircularQueue) Full() bool {
-	return false // need to implement
+	return q.len == cap(q.values)
 }
 
 func TestCircularQueue(t *testing.T) {
