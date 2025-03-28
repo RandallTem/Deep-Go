@@ -34,16 +34,15 @@ func (b *COWBuffer) Close() {
 }
 
 func (b *COWBuffer) Update(index int, value byte) bool {
-	if b == nil || index < 0 || index >= len(b.data) {
+	if index < 0 || index >= len(b.data) {
 		return false
 	}
 	if *b.refs > 1 {
 		oldData := b.data
-		b.data = make([]byte, len(oldData))
-		copy(b.data, oldData)
+		newData := make([]byte, len(oldData))
+		copy(newData, oldData)
 		*b.refs--
-		newRefs := 1
-		b.refs = &newRefs
+		*b = NewCOWBuffer(newData)
 	}
 	b.data[index] = value
 	return true
