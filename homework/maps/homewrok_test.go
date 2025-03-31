@@ -26,92 +26,56 @@ func NewOrderedMap() OrderedMap {
 }
 
 func (m *OrderedMap) Insert(key, value int) {
+	m.size++
 	if m.root == nil {
 		m.root = &Node{key, value, nil, nil}
-		m.size++
 		return
 	}
-	parentNode := m.root
-	currentNode := m.root
-	for currentNode != nil {
-		parentNode = currentNode
-		if currentNode.key > key {
-			currentNode = currentNode.leftChild
+	insert(m.root, key, value)
+}
+
+func insert(node *Node, key int, value int) {
+	if key < node.key {
+		if node.leftChild == nil {
+			node.leftChild = &Node{key, value, nil, nil}
 		} else {
-			currentNode = currentNode.rightChild
+			insert(node.leftChild, key, value)
 		}
-	}
-	m.size++
-	if parentNode.key > key {
-		parentNode.leftChild = &Node{key, value, nil, nil}
 	} else {
-		parentNode.rightChild = &Node{key, value, nil, nil}
+		if node.rightChild == nil {
+			node.rightChild = &Node{key, value, nil, nil}
+		} else {
+			insert(node.rightChild, key, value)
+		}
 	}
 }
 
 func (m *OrderedMap) Erase(key int) {
-	var parentNode *Node
-	currentNode := m.root
-	for currentNode != nil && currentNode.key != key {
-		parentNode = currentNode
-		if currentNode.key > key {
-			currentNode = currentNode.leftChild
-		} else {
-			currentNode = currentNode.rightChild
-		}
-	}
+	currentNode, parentNode := findKey(m.root, key)
 	switch {
 	case currentNode == nil:
 		return
 	case currentNode.leftChild == nil && currentNode.rightChild == nil:
 		if currentNode == parentNode.rightChild {
-			if parentNode != nil {
-				parentNode.rightChild = nil
-			} else {
-				m.root = nil
-			}
+			parentNode.rightChild = nil
 		} else {
-			if parentNode != nil {
-				parentNode.leftChild = nil
-			} else {
-				m.root = nil
-			}
+			parentNode.leftChild = nil
 		}
 	case currentNode.leftChild == nil && currentNode.rightChild != nil:
 		if currentNode == parentNode.rightChild {
-			if parentNode != nil {
-				parentNode.rightChild = currentNode.rightChild
-			} else {
-				m.root = currentNode.rightChild
-			}
+			parentNode.rightChild = currentNode.rightChild
 		} else {
-			if parentNode != nil {
-				parentNode.leftChild = currentNode.rightChild
-			} else {
-				m.root = currentNode.rightChild
-			}
+			parentNode.leftChild = currentNode.rightChild
 		}
 	case currentNode.leftChild != nil && currentNode.rightChild == nil:
 		if currentNode == parentNode.rightChild {
-			if parentNode != nil {
-				parentNode.rightChild = currentNode.leftChild
-			} else {
-				m.root = currentNode.leftChild
-			}
+			parentNode.rightChild = currentNode.leftChild
 		} else {
-			if parentNode != nil {
-				parentNode.leftChild = currentNode.leftChild
-			} else {
-				m.root = currentNode.leftChild
-			}
+			parentNode.leftChild = currentNode.leftChild
 		}
 	case currentNode.leftChild != nil && currentNode.rightChild != nil:
 		successor, successorParent := findSuccessor(currentNode)
-		if parentNode != nil {
-			parentNode.rightChild = successor
-		} else {
-			m.root = successor
-		}
+		parentNode.rightChild = successor
 		successor.leftChild = currentNode.leftChild
 		successor.rightChild = currentNode.rightChild
 		if successorParent != currentNode {
@@ -131,15 +95,20 @@ func findSuccessor(node *Node) (successor *Node, parent *Node) {
 }
 
 func (m *OrderedMap) Contains(key int) bool {
-	currentNode := m.root
+	searchNode, _ := findKey(m.root, key)
+	return searchNode != nil
+}
+
+func findKey(currentNode *Node, key int) (node *Node, parent *Node) {
 	for currentNode != nil && currentNode.key != key {
+		parent = currentNode
 		if currentNode.key > key {
 			currentNode = currentNode.leftChild
 		} else {
 			currentNode = currentNode.rightChild
 		}
 	}
-	return currentNode != nil
+	return currentNode, parent
 }
 
 func (m *OrderedMap) Size() int {
