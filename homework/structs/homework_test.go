@@ -12,79 +12,83 @@ type Option func(*GamePerson)
 
 func WithName(name string) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		for i, nameByte := range []byte(name) {
+			person.PersonName[i] = nameByte
+		}
 	}
 }
 
 func WithCoordinates(x, y, z int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.XCoord = int32(x)
+		person.YCoord = int32(y)
+		person.ZCoord = int32(z)
 	}
 }
 
 func WithGold(gold int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PersonGold = uint32(gold)
 	}
 }
 
 func WithMana(mana int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PackedValues2 = uint32(mana) << 12
 	}
 }
 
 func WithHealth(health int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PackedValues2 |= uint32(health) << 22
 	}
 }
 
 func WithRespect(respect int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PackedValues2 |= uint32(respect) << 8
 	}
 }
 
 func WithStrength(strength int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PackedValues2 |= uint32(strength) << 4
 	}
 }
 
 func WithExperience(experience int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PackedValues2 |= uint32(experience)
 	}
 }
 
 func WithLevel(level int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PackedValues1 |= uint16(level) << 12
 	}
 }
 
 func WithHouse() func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PackedValues1 |= uint16(1) << 11
 	}
 }
 
 func WithGun() func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PackedValues1 |= uint16(1) << 10
 	}
 }
 
 func WithFamily() func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PackedValues1 |= uint16(1) << 9
 	}
 }
 
 func WithType(personType int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.PackedValues1 |= uint16(personType) << 7
 	}
 }
 
@@ -95,87 +99,83 @@ const (
 )
 
 type GamePerson struct {
-	// need to implement
+	PersonName    [42]byte
+	PackedValues1 uint16
+	PackedValues2 uint32
+	XCoord        int32
+	YCoord        int32
+	ZCoord        int32
+	PersonGold    uint32
 }
 
 func NewGamePerson(options ...Option) GamePerson {
-	// need to implement
-	return GamePerson{}
+	person := GamePerson{}
+
+	for _, option := range options {
+		option(&person)
+	}
+
+	return person
 }
 
 func (p *GamePerson) Name() string {
-	// need to implement
-	return ""
+	return string(p.PersonName[:])
 }
 
 func (p *GamePerson) X() int {
-	// need to implement
-	return 0
+	return int(p.XCoord)
 }
 
 func (p *GamePerson) Y() int {
-	// need to implement
-	return 0
+	return int(p.YCoord)
 }
 
 func (p *GamePerson) Z() int {
-	// need to implement
-	return 0
+	return int(p.ZCoord)
 }
 
 func (p *GamePerson) Gold() int {
-	// need to implement
-	return 0
+	return int(p.PersonGold)
 }
 
 func (p *GamePerson) Mana() int {
-	// need to implement
-	return 0
+	return int(p.PackedValues2>>12) & 0b1111111111
 }
 
 func (p *GamePerson) Health() int {
-	// need to implement
-	return 0
+	return int(p.PackedValues2>>22) & 0b1111111111
 }
 
 func (p *GamePerson) Respect() int {
-	// need to implement
-	return 0
+	return int(p.PackedValues2>>8) & 0b1111
 }
 
 func (p *GamePerson) Strength() int {
-	// need to implement
-	return 0
+	return int(p.PackedValues2>>4) & 0b1111
 }
 
 func (p *GamePerson) Experience() int {
-	// need to implement
-	return 0
+	return int(p.PackedValues2) & 0b1111
 }
 
 func (p *GamePerson) Level() int {
-	// need to implement
-	return 0
+	return int(p.PackedValues1>>12) & 0b1111
 }
 
 func (p *GamePerson) HasHouse() bool {
-	// need to implement
-	return false
+	return int(p.PackedValues1>>11)&0b1 == 1
 }
 
 func (p *GamePerson) HasGun() bool {
-	// need to implement
-	return false
+	return int(p.PackedValues1>>10)&0b1 == 1
 }
 
 func (p *GamePerson) HasFamilty() bool {
-	// need to implement
-	return false
+	return int(p.PackedValues1>>9)&0b1 == 1
 }
 
 func (p *GamePerson) Type() int {
-	// need to implement
-	return 0
+	return int(p.PackedValues1>>7) & 0b11
 }
 
 func TestGamePerson(t *testing.T) {
