@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,8 +19,37 @@ type Person struct {
 }
 
 func Serialize(person Person) string {
-	// need to implement
-	return ""
+	typeOfPerson := reflect.TypeOf(person)
+	valueOfPerson := reflect.ValueOf(person)
+	numberOfFields := typeOfPerson.NumField()
+	var stringBuilder strings.Builder
+	for i := 0; i < numberOfFields; i++ {
+		value, present := typeOfPerson.Field(i).Tag.Lookup("properties")
+		if present {
+			values := strings.Split(value, ",")
+			isFieldEmpty := valueOfPerson.Field(i).IsZero()
+			switch {
+			case isFieldEmpty && !containsOmitempty(values):
+				zeroValueForField := reflect.Zero(typeOfPerson.Field(i).Type)
+				stringBuilder.WriteString(fmt.Sprintf("%s=%v", values[0], zeroValueForField))
+			case !isFieldEmpty:
+				stringBuilder.WriteString(fmt.Sprintf("%s=%v", values[0], valueOfPerson.Field(i)))
+			}
+			if i != numberOfFields-1 && !(isFieldEmpty && containsOmitempty(values)) {
+				stringBuilder.WriteString("\n")
+			}
+		}
+	}
+	return stringBuilder.String()
+}
+
+func containsOmitempty(values []string) bool {
+	for _, value := range values {
+		if value == "omitempty" {
+			return true
+		}
+	}
+	return false
 }
 
 func TestSerialization(t *testing.T) {
