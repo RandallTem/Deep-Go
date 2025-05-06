@@ -10,8 +10,37 @@ import (
 
 // go test -v homework_test.go
 
+const oneByte = 1
+
 func Defragment(memory []byte, pointers []unsafe.Pointer) {
-	// need to implement
+	memoryPointer := unsafe.Pointer(&memory[0])
+	fragmentedPointersMap := make(map[unsafe.Pointer]bool)
+	for i := range pointers {
+		fragmentedDataPointer := pointers[0]
+		for fragmentedDataPointer != nil {
+			fragmentedDataPointer = isMemoryTaken(memoryPointer, pointers)
+			if fragmentedDataPointer != nil {
+				fragmentedPointersMap[fragmentedDataPointer] = true
+				memoryPointer = unsafe.Add(memoryPointer, oneByte)
+			}
+		}
+		if !fragmentedPointersMap[pointers[i]] {
+			*(*byte)(memoryPointer) = *(*byte)(pointers[i])
+			*(*byte)(pointers[i]) = 0b0
+			pointers[i] = memoryPointer
+			fragmentedPointersMap[pointers[i]] = true
+			memoryPointer = unsafe.Add(memoryPointer, oneByte)
+		}
+	}
+}
+
+func isMemoryTaken(memoryPointer unsafe.Pointer, pointers []unsafe.Pointer) unsafe.Pointer {
+	for _, dataPointer := range pointers {
+		if memoryPointer == dataPointer {
+			return dataPointer
+		}
+	}
+	return nil
 }
 
 func TestDefragmentation(t *testing.T) {
