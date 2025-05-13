@@ -15,14 +15,15 @@ const oneByte = 1
 func Defragment(memory []byte, pointers []unsafe.Pointer) {
 	memoryPointer := unsafe.Pointer(&memory[0])
 	fragmentedPointersMap := make(map[unsafe.Pointer]bool)
+	memoryForOccupationBorder := uintptr(unsafe.Pointer(&memory[len(pointers)-1]))
+	for _, pointer := range pointers {
+		if uintptr(pointer) <= memoryForOccupationBorder {
+			fragmentedPointersMap[pointer] = true
+		}
+	}
 	for i := range pointers {
-		fragmentedDataPointer := pointers[0]
-		for fragmentedDataPointer != nil {
-			fragmentedDataPointer = isMemoryTaken(memoryPointer, pointers)
-			if fragmentedDataPointer != nil {
-				fragmentedPointersMap[fragmentedDataPointer] = true
-				memoryPointer = unsafe.Add(memoryPointer, oneByte)
-			}
+		for fragmentedPointersMap[memoryPointer] {
+			memoryPointer = unsafe.Add(memoryPointer, oneByte)
 		}
 		if !fragmentedPointersMap[pointers[i]] {
 			*(*byte)(memoryPointer) = *(*byte)(pointers[i])
@@ -32,15 +33,6 @@ func Defragment(memory []byte, pointers []unsafe.Pointer) {
 			memoryPointer = unsafe.Add(memoryPointer, oneByte)
 		}
 	}
-}
-
-func isMemoryTaken(memoryPointer unsafe.Pointer, pointers []unsafe.Pointer) unsafe.Pointer {
-	for _, dataPointer := range pointers {
-		if memoryPointer == dataPointer {
-			return dataPointer
-		}
-	}
-	return nil
 }
 
 func TestDefragmentation(t *testing.T) {
