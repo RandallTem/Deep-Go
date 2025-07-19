@@ -10,61 +10,58 @@ import (
 )
 
 type RWMutex struct {
-	mutex               sync.Mutex
-	readCondition       *sync.Cond
-	writeCondition      *sync.Cond
-	numOfReaders        int
-	canWrite            bool
-	numOfWaitingWriters int
+	mutex                   sync.RWMutex
+	readingCond             *sync.Cond
+	writingCond             *sync.Cond
+	numberOfReaders         int32
+	haveWaitingWriters      bool
+	writerInCriticalSection bool
 }
 
 func NewRWMutex() *RWMutex {
 	m := &RWMutex{}
-	m.readCondition = sync.NewCond(&m.mutex)
-	m.writeCondition = sync.NewCond(&m.mutex)
+	m.readingCond = sync.NewCond(&m.mutex)
+	m.writingCond = sync.NewCond(&m.mutex)
 	return m
 }
 
 func (m *RWMutex) Lock() {
 	m.mutex.Lock()
-	defer func() {
-		m.mutex.Unlock()
-		m.numOfWaitingWriters--
-		m.canWrite = true
-	}()
-	m.numOfWaitingWriters++
-	for m.numOfReaders > 0 || m.canWrite {
-		m.writeCondition.Wait()
+	if m.numberOfReaders > 0 || m.writerInCriticalSection {
+		m.haveWaitingWriters = true
+		m.writingCond.Wait()
 	}
+	m.haveWaitingWriters = false
+	m.writerInCriticalSection = true
+	m.mutex.Unlock()
 }
 
 func (m *RWMutex) Unlock() {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.canWrite = false
-	if m.numOfWaitingWriters == 0 {
-		m.writeCondition.Signal()
+	if m.haveWaitingWriters {
+		m.writingCond.Signal()
 	} else {
-		m.readCondition.Broadcast()
+		m.readingCond.Broadcast()
 	}
+	m.mutex.Unlock()
 }
 
 func (m *RWMutex) RLock() {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	for m.canWrite || m.numOfWaitingWriters > 0 {
-		m.readCondition.Wait()
+	if m.writerInCriticalSection || m.haveWaitingWriters {
+		m.readingCond.Wait()
 	}
-	m.numOfReaders++
+	m.numberOfReaders++
+	m.mutex.Unlock()
 }
 
 func (m *RWMutex) RUnlock() {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.numOfReaders--
-	if m.numOfReaders == 0 {
-		m.writeCondition.Signal()
+	m.numberOfReaders--
+	if m.numberOfReaders == 0 {
+		m.writingCond.Signal()
 	}
+	m.mutex.Unlock()
 }
 
 func TestRWMutexWithWriter(t *testing.T) {
