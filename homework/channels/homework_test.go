@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -10,25 +12,66 @@ import (
 
 // go test -v homework_test.go
 
+const bufferSizeMultiply = 2
+
+var ErrPoolFull = errors.New("pool is full")
+var ErrPoolClosed = errors.New("pool is closed")
+
 type WorkerPool struct {
-	// need to implement
+	workersNumber int
+	buffer        chan func()
+	taskGroup     sync.WaitGroup
+	close         chan struct{}
+	mutex         sync.Mutex
 }
 
 func NewWorkerPool(workersNumber int) *WorkerPool {
-	// need to implement
-	return &WorkerPool{}
+	wp := &WorkerPool{
+		workersNumber: workersNumber,
+		buffer:        make(chan func(), workersNumber*bufferSizeMultiply),
+		taskGroup:     sync.WaitGroup{},
+		close:         make(chan struct{}),
+	}
+	for i := 0; i < wp.workersNumber; i++ {
+		go func() {
+			for task := range wp.buffer {
+				task()
+				wp.taskGroup.Done()
+			}
+		}()
+	}
+	return wp
 }
 
 // Return an error if the pool is full
 func (wp *WorkerPool) AddTask(task func()) error {
-	// need to implement
-	return nil
+	wp.mutex.Lock()
+	defer wp.mutex.Unlock()
+	select {
+	case <-wp.close:
+		return ErrPoolClosed
+	default:
+	}
+	select {
+	case wp.buffer <- task:
+		wp.taskGroup.Add(1)
+		return nil
+	default:
+		return ErrPoolFull
+	}
 }
 
 // Shutdown all workers and wait for all
 // tasks in the pool to complete
 func (wp *WorkerPool) Shutdown() {
-	// need to implement
+	select {
+	case <-wp.close:
+		return
+	default:
+		close(wp.close)
+	}
+	wp.taskGroup.Wait()
+	close(wp.buffer)
 }
 
 func TestWorkerPool(t *testing.T) {
