@@ -20,15 +20,16 @@ var ErrPoolClosed = errors.New("pool is closed")
 type WorkerPool struct {
 	workersNumber int
 	buffer        chan func()
-	taskGroup     *sync.WaitGroup
+	taskGroup     sync.WaitGroup
 	close         chan struct{}
+	mutex         sync.Mutex
 }
 
 func NewWorkerPool(workersNumber int) *WorkerPool {
 	wp := &WorkerPool{
 		workersNumber: workersNumber,
 		buffer:        make(chan func(), workersNumber*bufferSizeMultiply),
-		taskGroup:     &sync.WaitGroup{},
+		taskGroup:     sync.WaitGroup{},
 		close:         make(chan struct{}),
 	}
 	for i := 0; i < wp.workersNumber; i++ {
@@ -44,6 +45,8 @@ func NewWorkerPool(workersNumber int) *WorkerPool {
 
 // Return an error if the pool is full
 func (wp *WorkerPool) AddTask(task func()) error {
+	wp.mutex.Lock()
+	defer wp.mutex.Unlock()
 	select {
 	case <-wp.close:
 		return ErrPoolClosed
