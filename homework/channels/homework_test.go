@@ -22,7 +22,7 @@ type WorkerPool struct {
 	buffer        chan func()
 	taskGroup     sync.WaitGroup
 	close         chan struct{}
-	mutex         sync.Mutex
+	mutex         sync.RWMutex
 }
 
 func NewWorkerPool(workersNumber int) *WorkerPool {
@@ -45,8 +45,8 @@ func NewWorkerPool(workersNumber int) *WorkerPool {
 
 // Return an error if the pool is full
 func (wp *WorkerPool) AddTask(task func()) error {
-	wp.mutex.Lock()
-	defer wp.mutex.Unlock()
+	wp.mutex.RLock()
+	defer wp.mutex.RUnlock()
 	select {
 	case <-wp.close:
 		return ErrPoolClosed
@@ -64,14 +64,16 @@ func (wp *WorkerPool) AddTask(task func()) error {
 // Shutdown all workers and wait for all
 // tasks in the pool to complete
 func (wp *WorkerPool) Shutdown() {
+	wp.mutex.Lock()
 	select {
 	case <-wp.close:
 		return
 	default:
 		close(wp.close)
 	}
-	wp.taskGroup.Wait()
 	close(wp.buffer)
+	wp.mutex.Unlock()
+	wp.taskGroup.Wait()
 }
 
 func TestWorkerPool(t *testing.T) {
