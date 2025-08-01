@@ -1,6 +1,6 @@
 module golang_course
 
-go 1.22
+go 1.24
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
